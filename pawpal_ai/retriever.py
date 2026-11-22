@@ -37,9 +37,9 @@ STOPWORDS = {
 # Light query expansion so everyday words reach the guides' vocabulary.
 SYNONYMS = {
     "walk": ["exercise"],
-    "food": ["feeding", "meal"],
-    "feed": ["feeding", "meal"],
-    "eat": ["feeding", "meal"],
+    "food": ["feeding", "meal", "diet"],
+    "feed": ["feeding", "meal", "diet"],
+    "eat": ["feeding", "meal", "diet"],
     "ate": ["toxic", "poisoning"],
     "poison": ["toxic", "poisoning"],
     "brush": ["brushing", "grooming"],
@@ -173,14 +173,21 @@ class Retriever:
     Args:
         guides: Passages from the knowledge base (loaded from disk by default).
         use_pet_records: Include the owner's pet records as a second source.
+        expand: Apply synonym query expansion (turned off to measure its effect).
     """
 
     k1 = 1.5
     b = 0.75
 
-    def __init__(self, guides: list[Passage] | None = None, use_pet_records: bool = True):
+    def __init__(
+        self,
+        guides: list[Passage] | None = None,
+        use_pet_records: bool = True,
+        expand: bool = True,
+    ):
         self.guides = guides if guides is not None else load_guides()
         self.use_pet_records = use_pet_records
+        self.expand = expand
 
     def task_sections(self, species: str) -> list[Passage]:
         """Custom index: every guide section that carries TASK lines for a species.
@@ -220,7 +227,8 @@ class Retriever:
             df.update(set(d))
         n = len(docs)
 
-        q_terms = set(expand_query(tokenize(query)))
+        q_tokens = tokenize(query)
+        q_terms = set(expand_query(q_tokens) if self.expand else q_tokens)
         scored = []
         for passage, doc in zip(corpus, docs):
             tf = Counter(doc)

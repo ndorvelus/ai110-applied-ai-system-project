@@ -4,6 +4,7 @@ from pathlib import Path
 import streamlit as st
 
 from display import CATEGORY_EMOJI, category_label, priority_badge, status_icon
+from pawpal_ai import PawPalAgent
 from pawpal_system import Owner, Pet, Schedule, Task
 
 DATA_FILE = Path(__file__).parent / "data.json"
@@ -14,35 +15,11 @@ st.title("🐾 PawPal+")
 
 st.markdown(
     """
-Welcome to the PawPal+ starter app.
-
-This file is intentionally thin. It gives you a working Streamlit app so you can start quickly,
-but **it does not implement the project logic**. Your job is to design the system and build it.
-
-Use this app as your interactive demo once your backend classes/functions exist.
+PawPal+ plans daily pet care around your time budget. The **Ask PawPal AI** panel at the
+bottom answers care questions from a pet-care knowledge base and builds a schedule for
+you, with guardrails for emergencies and medication doses.
 """
 )
-
-with st.expander("Scenario", expanded=True):
-    st.markdown(
-        """
-**PawPal+** is a pet care planning assistant. It helps a pet owner plan care tasks
-for their pet(s) based on constraints like time, priority, and preferences.
-
-You will design and implement the scheduling logic and connect it to this Streamlit UI.
-"""
-    )
-
-with st.expander("What you need to build", expanded=True):
-    st.markdown(
-        """
-At minimum, your system should:
-- Represent pet care tasks (what needs to happen, how long it takes, priority)
-- Represent the pet and the owner (basic info and preferences)
-- Build a plan/schedule for a day that chooses and orders tasks based on constraints
-- Explain the plan (why each task was chosen and when it happens)
-"""
-    )
 
 st.divider()
 
@@ -263,6 +240,58 @@ if st.button("Generate schedule"):
                 for t in schedule.skipped_tasks
             ]
         )
+
+st.divider()
+
+st.subheader("🤖 Ask PawPal AI")
+st.caption(
+    "Ask a care question (\"How often should I feed Mochi?\") or request a plan "
+    "(\"Plan today for Biscuit\"). Answers come only from the guides in knowledge/ "
+    "and your pets' records; this is not veterinary advice."
+)
+if "agent" not in st.session_state:
+    st.session_state.agent = PawPalAgent()
+request = st.text_input("Your request", key="ai_request")
+if st.button("Ask PawPal"):
+    st.session_state.ai_result = st.session_state.agent.run(request, owner)
+
+result = st.session_state.get("ai_result")
+if result is not None:
+    if result.status == "blocked":
+        (st.error if result.guardrail == "emergency" else st.warning)(result.answer)
+    else:
+        st.markdown(result.answer.replace("\n", "  \n"))
+        st.progress(result.confidence, text=f"Confidence {result.confidence:.0%}")
+        if result.guardrail == "dosage":
+            st.info("Dose questions are answered with general guidance only.")
+    if result.proposed_tasks:
+        st.markdown("**Proposed plan** (not saved until you accept it)")
+        st.table(
+            [
+                {
+                    "time": t.time or "-",
+                    "pet": t.pet_name,
+                    "task": t.title,
+                    "type": category_label(t.category),
+                    "duration (min)": t.duration_minutes,
+                    "priority": priority_badge(t.priority),
+                }
+                for t in sorted(result.proposed_tasks, key=lambda t: t.time)
+            ]
+        )
+        st.text(result.plan_text)
+        if st.button("Add these tasks to my schedule"):
+            pets = {p.name: p for p in owner.pets}
+            for t in result.proposed_tasks:
+                pets[t.pet_name].add_task(Task.from_dict(t.to_dict()))
+            st.session_state.ai_result = None
+            st.success(f"Added {len(result.proposed_tasks)} task(s).")
+            st.rerun()
+    if result.sources:
+        st.caption("Sources: " + ", ".join(
+            f"[{n}] {s}" for n, s in enumerate(result.sources, start=1)))
+    with st.expander("How the agent reached this (trace)"):
+        st.text(result.trace_text())
 
 # Persist after every interaction so the next run picks up where this one left off.
 owner.save_to_json(DATA_FILE)
