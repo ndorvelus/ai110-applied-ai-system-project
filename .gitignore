@@ -5,3 +5,5 @@ __pycache__/
 .DS_Store
 data.json
 *.tmp
+logs/pawpal.log
+logs/agent_traces.jsonl
