@@ -335,24 +335,14 @@ evaluation set made "is retrieval better?" a number I could check after each cha
 ## Reflection
 
 The most useful thing about this project was turning "the AI seems to work" into
-evidence: a trace for every step, and a labeled set of cases with a pass/fail number. A
-bug in my revise logic looked fine in code and only showed up in a trace. A retrieval gap
-was invisible until an evaluation case failed. I also learned that the reliable parts of
-an AI system are often the parts that are not AI at all: rules for safety, grounding for
-honesty, and a human approval step for anything that changes data. The model, or my
-offline stand-in for it, only phrases what those parts allow. The full responsible-AI
-reflection, including how I worked with AI on this project, is in
-[model_card.md](model_card.md).
+evidence: a trace for every step, and a labeled set of cases with a pass/fail number. A bug in my revise logic looked fine in code and only showed up in a trace. A retrieval gap was invisible until an evaluation case failed. I also learned that the reliable parts of an AI system are often the parts that are not AI at all: rules for safety, grounding for honesty, and a human approval step for anything that changes data. The model, or my offline stand-in for it, only phrases what those parts allow. The full responsible-AI reflection, including how I worked with AI on this project, is in [model_card.md](model_card.md).
 
 ## Portfolio
 
 - **Code:** https://github.com/ndorvelus/ai110-applied-ai-system-project
 - **What this project says about me as an AI engineer:** I treat an AI feature as a
-  system to be verified, not a demo to be shown. I ground answers in sources I can point
-  to, put rule-based guardrails where mistakes would hurt (emergencies, medication), keep
-  a human in the loop for anything that changes data, and measure each change with tests
-  and an evaluation harness, including reporting where my own system falls short.
-- **Video walkthrough (optional):** *add a Loom link here after recording.*
+  system to be verified, not a demo to be shown. I ground answers in sources I can point to, put rule-based guardrails where mistakes would hurt (emergencies, medication), keep a human in the loop for anything that changes data, and measure each change with tests and an evaluation harness, including reporting where my own system falls short.
+
 
 ## Project layout
 

@@ -137,10 +137,7 @@ this card makes no claim about how closely Claude follows the format.
 
 - **My self-correction loop could never correct anything.** The first revise step
   dropped optional tasks to make room for a skipped high-priority task. Because the
-  original scheduler is greedy by priority, high-priority tasks are always placed first,
-  so dropping lower tasks never frees the space they need. The code looked reasonable.
-  The trace showed the same critique failure after every revision, and that is how it
-  was caught.
+  original scheduler is greedy by priority, high-priority tasks are always placed first, so dropping lower tasks never frees the space they need. The code looked reasonable. The trace showed the same critique failure after every revision, and that is how it was caught.
 - **One word broke a correct answer.** "What does Clover eat?" failed the harness on its
   first run (14/15) because "eat" never reached "diet". The system then gave a
   confident-looking but empty reply.
