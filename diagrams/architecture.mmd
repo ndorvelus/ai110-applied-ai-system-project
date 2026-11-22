@@ -1,0 +1,47 @@
+%% PawPal AI system architecture (matches pawpal_ai/agent.py PawPalAgent.run)
+flowchart TD
+    U([Owner: question or planning request]) --> UI[Streamlit app.py / CLI ai_main.py]
+    UI --> G1{Input guardrail<br/>guardrails.check_input}
+    G1 -- "empty / too long / injection" --> R1[Polite refusal]
+    G1 -- "emergency: poisoning, seizure, blockage..." --> R2[Stop: contact vet +<br/>Poison Control number]
+    G1 -- "dose question" --> DM[dosage mode on:<br/>general guidance only]
+    G1 -- ok --> P
+    DM --> P[Planner<br/>intent, target pets, tool list]
+
+    subgraph RAG["Retrieval (retriever.py, BM25)"]
+        KB[(knowledge/*.md guides<br/>sections + species tags + TASK lines)]
+        PR[(Owner's pet records<br/>pawpal_system Owner/Pet/Task)]
+        TI[Task index<br/>task_sections per species]
+        KB --> TI
+    end
+
+    P --> RET[Retrieve: synonyms + species filter<br/>+ pet-name boost]
+    KB --> RET
+    PR --> RET
+
+    P -- "intent = question" --> W
+    P -- "intent = schedule" --> PROP[Propose tasks<br/>age / meds rules, skip duplicates]
+    TI --> PROP
+    PROP --> SCH[Build schedule on a COPY of the owner<br/>Schedule.generate_plan + find_next_available_slot]
+    SCH --> CR{Self-critique<br/>guardrails.check_plan}
+    CR -- "high-priority task skipped" --> REV[Revise: drop optional proposals,<br/>shorten one flexible activity]
+    REV --> SCH
+    CR -- "passes, or no safe fix<br/>(flag 'Needs your attention')" --> W
+
+    RET --> W[Answer writer llm.py<br/>offline extractive or Claude<br/>pawpal few-shot style / baseline]
+    W --> G2{Output check<br/>check_answer: grounded, no doses}
+    G2 -- fails --> FIX[Repair: offline writer + strip doses] --> G2
+    G2 -- passes --> CONF[Confidence score 0-1]
+    CONF --> OUT([Answer + sources + proposed plan + trace])
+
+    OUT --> HUM{Owner reviews plan<br/>human in the loop}
+    HUM -- "Add these tasks" --> SAVE[(data.json via Owner.save_to_json)]
+    OUT --> LOG[(logs/agent_traces.jsonl<br/>logs/pawpal.log)]
+
+    subgraph TEST["Testing and evaluation"]
+        PT[pytest: tests/test_ai.py<br/>tests/tests_pawpal.py]
+        EV[eval/run_eval.py<br/>15 cases, retrieval ablation,<br/>style comparison]
+    end
+    EV -. runs cases through .-> G1
+    PT -. checks .-> G1
+    PT -. checks .-> SCH
